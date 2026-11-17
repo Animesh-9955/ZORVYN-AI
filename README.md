@@ -166,3 +166,6 @@ MIT © ZORVYN AI — Intelligence Reimagined.
 
 
 Deployed on Render.
+
+
+<!-- Deployment trigger commit -->
