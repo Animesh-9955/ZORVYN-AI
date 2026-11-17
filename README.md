@@ -164,3 +164,5 @@ The frontend starts at **`http://localhost:5173`**.
 ## 📄 License
 MIT © ZORVYN AI — Intelligence Reimagined.
 
+
+Deployed on Render.
