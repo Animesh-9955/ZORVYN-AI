@@ -8,8 +8,20 @@ import {
   User, 
   AlertTriangle 
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CodeBlock from './CodeBlock';
 import { useChat } from '../../context/ChatContext';
+
+// Clean stray LaTeX unit wrappers like ${\text{W}}$, $\text{mm}$, etc.
+const sanitizeContent = (content) => {
+  if (!content) return '';
+  return content
+    .replace(/\$\{\\text\{([^}]+)\}\}\$/g, '$1')
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/\$([0-9.]+)\s*\\text\{([^}]+)\}\$/g, '$1 $2')
+    .replace(/\$([0-9.]+)\s*([a-zA-Z%]+)\$/g, '$1 $2');
+};
 
 export const MessageItem = ({ message, isLastMessage = false }) => {
   const { regenerateResponse, isLoading } = useChat();
@@ -22,97 +34,111 @@ export const MessageItem = ({ message, isLastMessage = false }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Helper to render markdown-like content (splits code blocks, lists, and prose)
+  // Helper to render markdown content with full GFM, tables, bold, and code blocks
   const renderFormattedContent = (content) => {
     if (!content) return null;
+    const sanitized = sanitizeContent(content);
 
-    const parts = [];
-    const codeBlockRegex = /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g;
-    let lastIndex = 0;
-    let match;
-
-    while ((match = codeBlockRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({
-          type: 'text',
-          value: content.substring(lastIndex, match.index),
-        });
-      }
-      parts.push({
-        type: 'code',
-        language: match[1] || 'text',
-        value: match[2].trim(),
-      });
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < content.length) {
-      parts.push({
-        type: 'text',
-        value: content.substring(lastIndex),
-      });
-    }
-
-    return parts.map((part, index) => {
-      if (part.type === 'code') {
-        return (
-          <CodeBlock
-            key={index}
-            language={part.language}
-            code={part.value}
-          />
-        );
-      }
-
-      // Render prose paragraphs with markdown emphasis support
-      const paragraphs = part.value.split('\n\n');
-      return (
-        <div key={index} className="space-y-2.5">
-          {paragraphs.map((p, pIdx) => {
-            if (!p.trim()) return null;
-
-            // Header level 1, 2, 3
-            if (p.startsWith('# ') || p.startsWith('## ') || p.startsWith('### ')) {
-              const cleanHeader = p.replace(/^#+\s*/, '');
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            if (!inline && match) {
               return (
-                <h4 key={pIdx} className="text-sm sm:text-base font-bold text-white tracking-wide pt-1">
-                  {cleanHeader}
-                </h4>
+                <CodeBlock
+                  language={match[1]}
+                  code={String(children).replace(/\n$/, '')}
+                />
               );
             }
-
-            // Blockquote
-            if (p.startsWith('> ')) {
+            if (!inline && String(children).includes('\n')) {
               return (
-                <blockquote key={pIdx} className="pl-3.5 border-l-2 border-zorvyn-primary/60 text-zorvyn-muted italic text-xs sm:text-sm my-1.5">
-                  {p.replace(/^>\s*/, '')}
-                </blockquote>
+                <CodeBlock
+                  language="text"
+                  code={String(children).replace(/\n$/, '')}
+                />
               );
             }
-
-            // Unordered list
-            if (p.startsWith('- ') || p.startsWith('* ') || p.includes('\n- ') || p.includes('\n* ')) {
-              const items = p.split('\n').filter(Boolean);
-              return (
-                <ul key={pIdx} className="list-disc list-inside space-y-1 text-xs sm:text-sm text-[#E2E8F0]">
-                  {items.map((item, iIdx) => (
-                    <li key={iIdx} className="leading-relaxed">
-                      {item.replace(/^[-*]\s*/, '')}
-                    </li>
-                  ))}
-                </ul>
-              );
-            }
-
             return (
-              <p key={pIdx} className="text-xs sm:text-sm leading-relaxed text-[#E2E8F0] whitespace-pre-line">
-                {p}
-              </p>
+              <code
+                className="px-1.5 py-0.5 rounded bg-zorvyn-surface border border-zorvyn-border-subtle text-zorvyn-primary font-mono text-xs"
+                {...props}
+              >
+                {children}
+              </code>
             );
-          })}
-        </div>
-      );
-    });
+          },
+          table({ children }) {
+            return (
+              <div className="overflow-x-auto my-3 rounded-xl border border-zorvyn-border-subtle bg-zorvyn-surface/40">
+                <table className="min-w-full text-xs text-left divide-y divide-zorvyn-border-subtle">
+                  {children}
+                </table>
+              </div>
+            );
+          },
+          thead({ children }) {
+            return <thead className="bg-zorvyn-surface/90 text-white font-semibold">{children}</thead>;
+          },
+          th({ children }) {
+            return <th className="px-3.5 py-2.5 font-semibold text-white tracking-wider border-b border-zorvyn-border-subtle">{children}</th>;
+          },
+          td({ children }) {
+            return <td className="px-3.5 py-2.5 text-[#E2E8F0] border-b border-zorvyn-border-subtle/40">{children}</td>;
+          },
+          h1({ children }) {
+            return <h1 className="text-base sm:text-lg font-bold text-white tracking-wide mt-4 mb-2">{children}</h1>;
+          },
+          h2({ children }) {
+            return <h2 className="text-sm sm:text-base font-bold text-white tracking-wide mt-3 mb-2">{children}</h2>;
+          },
+          h3({ children }) {
+            return <h3 className="text-xs sm:text-sm font-bold text-white tracking-wide mt-3 mb-1.5">{children}</h3>;
+          },
+          h4({ children }) {
+            return <h4 className="text-xs sm:text-sm font-semibold text-white tracking-wide mt-2 mb-1">{children}</h4>;
+          },
+          p({ children }) {
+            return <p className="text-xs sm:text-sm leading-relaxed text-[#E2E8F0] my-2">{children}</p>;
+          },
+          ul({ children }) {
+            return <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-[#E2E8F0] my-2">{children}</ul>;
+          },
+          ol({ children }) {
+            return <ol className="list-decimal list-inside space-y-1.5 text-xs sm:text-sm text-[#E2E8F0] my-2">{children}</ol>;
+          },
+          li({ children }) {
+            return <li className="leading-relaxed">{children}</li>;
+          },
+          blockquote({ children }) {
+            return (
+              <blockquote className="pl-3.5 border-l-2 border-zorvyn-primary/60 text-zorvyn-muted italic text-xs sm:text-sm my-2">
+                {children}
+              </blockquote>
+            );
+          },
+          strong({ children }) {
+            return <strong className="font-semibold text-white">{children}</strong>;
+          },
+          a({ href, children }) {
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zorvyn-primary hover:underline hover:text-white transition-colors"
+              >
+                {children}
+              </a>
+            );
+          },
+        }}
+      >
+        {sanitized}
+      </ReactMarkdown>
+    );
   };
 
   if (isUser) {
