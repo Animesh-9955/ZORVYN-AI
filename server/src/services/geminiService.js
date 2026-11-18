@@ -137,6 +137,21 @@ class GeminiService {
 
       return responseStream;
     } catch (error) {
+      if (model !== 'gemini-2.5-flash') {
+        logger.warn(`Primary model ${model} failed (${error.message}), falling back to gemini-2.5-flash`);
+        try {
+          return await ai.models.generateContentStream({
+            model: 'gemini-2.5-flash',
+            contents,
+            config: {
+              systemInstruction,
+              temperature: 0.7,
+            },
+          });
+        } catch (fallbackError) {
+          logger.error('Fallback model failed as well:', fallbackError.message || fallbackError);
+        }
+      }
       logger.error('Gemini generateContentStream error:', error.message || error);
       throw this.normalizeError(error);
     }
