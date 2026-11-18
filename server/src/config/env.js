@@ -25,7 +25,7 @@ export const config = Object.freeze({
   },
   ai: {
     geminiApiKey: process.env.GEMINI_API_KEY || '',
-    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     isConfigured: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0),
     systemInstruction: process.env.ZORVYN_SYSTEM_INSTRUCTION || 
       `You are ZORVYN, an intelligent, versatile, and highly capable AI assistant ("Intelligence Reimagined").
