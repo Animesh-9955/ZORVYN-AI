@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Ensure uploads directory exists
+RUN mkdir -p uploads
+
 # Copy package files
 COPY package.json package-lock.json ./
 
@@ -14,8 +17,8 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Expose port
-EXPOSE 5001
+ENV PORT=10000
+EXPOSE 10000
 
 # Start the server
 CMD ["node", "src/server.js"]

@@ -64,7 +64,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start Server
-const server = app.listen(config.port, () => {
+const server = app.listen(config.port, '0.0.0.0', () => {
   logger.info(`✨ ZORVYN AI Backend Server initialized`);
   logger.info(`🚀 Listening on port http://localhost:${config.port}`);
   logger.info(`🛡️  Environment: ${config.nodeEnv}`);
