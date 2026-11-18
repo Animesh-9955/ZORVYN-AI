@@ -1,6 +1,9 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
+
+# Install openssl for Prisma and ca-certificates
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Ensure uploads directory exists
 RUN mkdir -p uploads
