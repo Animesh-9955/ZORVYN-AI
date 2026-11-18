@@ -1,1 +1,21 @@
-FROM node:20-alpine\n\n# Set working directory\nWORKDIR /app\n\n# Install dependencies\nCOPY package.json package-lock.json ./\nRUN npm ci --omit=dev\n\n# Copy source code\nCOPY . .\n\n# Prisma generate (client)\nRUN npx prisma generate\n\n# Expose port\nEXPOSE 5001\n\n# Start server\nCMD ["npm", "run", "dev"]
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code and Prisma schema
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Expose port
+EXPOSE 5001
+
+# Start the server
+CMD ["node", "src/server.js"]

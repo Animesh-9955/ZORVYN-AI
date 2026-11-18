@@ -4,6 +4,8 @@
  * Zero API keys are ever sent to or handled by this client.
  */
 
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || (import.meta.env.PROD ? 'https://zorvyn-ai.onrender.com/api' : '/api');
+
 export async function streamChatResponse({
   message,
   conversationId = null,
@@ -14,7 +16,7 @@ export async function streamChatResponse({
   signal,
 }) {
   try {
-    const response = await fetch('/api/chat/stream', {
+    const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
